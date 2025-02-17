@@ -408,7 +408,20 @@ class PE(ServiceBase):
             res.add_lines(dataless_resources)
             self.file_res.add_section(res)
 
+
+    # handle PE machine type parsing in all cases - parse hex of type if it isn't identified by LIEF machinetype enum
+    # https://github.com/lief-project/LIEF/issues/1170
+    def parse_machine_type(self):
+        try:
+            return self.binary.header.machine.name
+        except ValueError as v:
+            # LIEF python returns actual value of unlisted machine type in the exception message str
+            return hex(str(v).split(' ')[0])
+    
     def add_headers(self):
+        # compute PE machine header feature. Called twice
+        pe_machine = self.parse_machine_type()
+        
         self.features["name"] = os.path.basename(self.binary.name)
         self.features["format"] = self.binary.format.name
         self.features["imphash"] = lief.PE.get_imphash(self.binary, mode=lief.PE.IMPHASH_MODE.PEFILE)
@@ -417,7 +430,7 @@ class PE(ServiceBase):
         self.features["header"] = {
             "characteristics_hash": self.binary.header.characteristics.__int__(),
             "characteristics_list": [char.name for char in self.binary.header.characteristics_list],
-            "machine": self.binary.header.machine.name,
+            "machine": pe_machine,
             "numberof_sections": self.binary.header.numberof_sections,
             "numberof_symbols": self.binary.header.numberof_symbols,
             "signature": self.binary.header.signature,
@@ -528,7 +541,7 @@ class PE(ServiceBase):
         res.add_tag("file.pe.linker.timestamp", hr_timestamp)
         # Somehow, that is different from binary.entrypoint
         res.add_item("Entrypoint", hex(self.binary.optional_header.addressof_entrypoint))
-        res.add_item("Machine", self.binary.header.machine.name)
+        res.add_item("Machine", pe_machine)
         res.add_item("Magic", self.binary.optional_header.magic.name)
         if self.binary.optional_header.magic.name == "???":
             heur = Heuristic(18)
