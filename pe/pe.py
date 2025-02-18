@@ -416,7 +416,7 @@ class PE(ServiceBase):
             return self.binary.header.machine.name
         except ValueError as v:
             # LIEF python returns actual value of unlisted machine type in the exception message str
-            return hex(str(v).split(' ')[0])
+            return hex(int(str(v).split(' ')[0]))
     
     def add_headers(self):
         # compute PE machine header feature. Called twice
