@@ -414,9 +414,13 @@ class PE(ServiceBase):
     def parse_machine_type(self):
         try:
             return self.binary.header.machine.name
+        # lief <= 0.16.3
         except ValueError as v:
             # LIEF python returns actual value of unlisted machine type in the exception message str
             return hex(int(str(v).split(' ')[0]))
+        # lief 0.16.4+
+        except AttributeError:
+            return hex(self.binary.machine)
     
     def add_headers(self):
         # compute PE machine header feature. Called twice
